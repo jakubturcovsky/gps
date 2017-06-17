@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- COMMON DIMENS -->
+    <dimen name="margin_double">32dp</dimen>
+    <dimen name="margin_default">16dp</dimen>
+    <dimen name="margin_half">8dp</dimen>
+    <dimen name="margin_quarter">4dp</dimen>
+
+    <dimen name="activity_padding">16dp</dimen>
+    <dimen name="toolbar_content_insent_start">16dp</dimen>
+
+</resources>

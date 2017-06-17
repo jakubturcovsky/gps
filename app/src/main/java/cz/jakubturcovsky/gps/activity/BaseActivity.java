@@ -113,7 +113,7 @@ public abstract class BaseActivity
 
     /**
      * Replaces content fragment.
-     * TODO Add an option to select an animation
+     *
      * @param fragment Fragment, which is used for content.
      * @param addToBackStack Add transaction returnable.
      */
