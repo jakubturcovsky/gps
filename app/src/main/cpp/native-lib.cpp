@@ -3,7 +3,7 @@
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_cz_jakubturcovsky_gps_MainActivity_stringFromJNI(
+Java_cz_jakubturcovsky_gps_fragment_MainFragment_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
