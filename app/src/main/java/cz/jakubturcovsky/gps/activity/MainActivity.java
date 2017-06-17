@@ -1,8 +1,10 @@
-package cz.jakubturcovsky.gps;
+package cz.jakubturcovsky.gps.activity;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+
+import cz.jakubturcovsky.gps.R;
 
 public class MainActivity
         extends AppCompatActivity {

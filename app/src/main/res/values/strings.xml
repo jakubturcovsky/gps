@@ -1,3 +1,10 @@
 <resources>
+
     <string name="app_name">Gps</string>
+
+    <!-- MENU ACTIONS -->
+    <string name="action_home">Home</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_about">About</string>
+
 </resources>
