@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/margin_default"
         android:text="@string/app_name"
+        android:textColor="#FFFFFFFF"
         android:textAppearance="@style/TextAppearance.AppCompat.Headline"/>
 
 </LinearLayout>
