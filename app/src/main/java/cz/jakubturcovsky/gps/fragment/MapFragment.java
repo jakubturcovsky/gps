@@ -41,6 +41,7 @@ import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
 import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
+import cz.jakubturcovsky.gps.helper.PreferencesHelper;
 import cz.jakubturcovsky.gps.service.LocationService;
 
 public class MapFragment
@@ -97,7 +98,7 @@ public class MapFragment
 
     @Override
     protected String getTitle() {
-        return null;        // TODO: 18/06/17 R.string. title
+        return getString(R.string.navigation_drawer_home);
     }
 
     @Nullable
@@ -122,19 +123,10 @@ public class MapFragment
                 getActivity().registerReceiver(mLocationChangedReceiver, filter);
 
                 showMyLocation();
-//                LatLng sydney = new LatLng(-34, 151);
-////                mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-//                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(sydney, 10);
-//                mMap.animateCamera(cameraUpdate);
             }
         });
 
         return view;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
     }
 
     @Override
@@ -189,6 +181,8 @@ public class MapFragment
             case R.id.action_start_journey:
                 mMap.clear();
                 mPolylineOptions = new PolylineOptions();
+                mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
+                mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
                 mLocationList = new ArrayList<>();
                 getActivity().startService(LocationService.newIntent(getActivity()));
                 break;
