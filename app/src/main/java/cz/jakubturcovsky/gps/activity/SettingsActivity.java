@@ -8,6 +8,7 @@ import android.support.v7.widget.Toolbar;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cz.jakubturcovsky.gps.R;
+import cz.jakubturcovsky.gps.fragment.SettingsFragment;
 
 public class SettingsActivity
         extends BaseActivity {
@@ -28,6 +29,13 @@ public class SettingsActivity
         if (actionBar != null) {
             actionBar.setHomeButtonEnabled(true);
             actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+
+        if (savedInstanceState == null) {
+            getFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, SettingsFragment.newInstance())
+                    .commit();
         }
     }
 }
