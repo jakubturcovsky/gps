@@ -2,6 +2,7 @@ package cz.jakubturcovsky.gps.service;
 
 import android.app.AlertDialog;
 import android.app.Service;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Location;
@@ -27,13 +28,17 @@ public class LocationService
     public static final String EXTRA_LOCATION = "extra_location";
     public static final String ACTION_PROVIDER_DOWN = "action_provider_down";
     public static final String ACTION_MISSING_PERMISSION = "action_missing_permission";
-
+    // TODO: 18/06/17 DEBUG VARIABLES, change to production
     public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 5_000L;      // 1min
 
     private static final long MIN_DISTANCE_CHANGE = 1; // 10m
 
     private LocationManager mLocationManager;
     private Location mLocation;
+
+    public static Intent newIntent(@NonNull Context context) {
+        return new Intent(context, LocationService.class);
+    }
 
     @Nullable
     @Override
