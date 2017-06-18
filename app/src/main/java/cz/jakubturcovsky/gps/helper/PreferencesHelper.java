@@ -1,7 +1,9 @@
 package cz.jakubturcovsky.gps.helper;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.preference.PreferenceManager;
+import android.support.annotation.ColorInt;
 import android.util.Base64;
 
 import java.util.Collections;
@@ -12,13 +14,24 @@ import cz.jakubturcovsky.gps.GpsApplication;
 public class PreferencesHelper {
 
     public static final String PREF_ACQUIRE_LOCATION_PERIOD = "pref_acquire_location_period";
+    public static final String PREF_ROUTE_LINE_COLOR = "pref_route_line_color";
+    public static final String PREF_ROUTE_LINE_WIDTH = "pref_route_line_width";
 
     public static long getAcquireLocationPeriod() {
-        return getLong(PREF_ACQUIRE_LOCATION_PERIOD, -1);
+        return Long.valueOf(getString(PREF_ACQUIRE_LOCATION_PERIOD, String.valueOf(-1)));
     }
 
     public static void setAcquireLocationPeriod(long acquireLocationPeriod) {
-        setLong(PREF_ACQUIRE_LOCATION_PERIOD, acquireLocationPeriod);
+        setString(PREF_ACQUIRE_LOCATION_PERIOD, String.valueOf(acquireLocationPeriod));
+    }
+
+    @ColorInt
+    public static int getRouteLineColor() {
+        return Integer.valueOf(getString(PREF_ROUTE_LINE_COLOR, String.valueOf(Color.BLACK)));
+    }
+
+    public static int getRouteLineWidth() {
+        return Integer.valueOf(getString(PREF_ROUTE_LINE_WIDTH, String.valueOf(10)));        // TODO: 18/06/17 Constant default value
     }
 
     /* INTERNAL */

@@ -104,7 +104,7 @@ public class LocationService
         } else if (period == 0) {
             cancelLocationListener();
         } else {
-            startLocationListener(period);
+            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
         }
     }
 
