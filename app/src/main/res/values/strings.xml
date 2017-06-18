@@ -1,6 +1,8 @@
 <resources>
 
+    <!-- COMMON STRINGS -->
     <string name="app_name">GPS</string>
+    <string name="map_source">Google Maps</string>
 
     <!-- DRAWER ACTIONS -->
     <string name="navigation_drawer_open">Open drawer</string>

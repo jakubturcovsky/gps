@@ -38,6 +38,7 @@ import butterknife.ButterKnife;
 import butterknife.Unbinder;
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
+import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 import cz.jakubturcovsky.gps.service.LocationService;
 
@@ -64,7 +65,7 @@ public class MapFragment
                         numberFormat.format(location.getLongitude()),
                         numberFormat.format(location.getAccuracy()),
                         dateFormat.format(new Date(location.getTime())),
-                        "Google Maps");
+                        getString(R.string.map_source));
                 mMap.addMarker(new MarkerOptions()
                         .position(new LatLng(location.getLatitude(), location.getLongitude()))
                         .title(getString(R.string.map_marker_title, mLocationList.size()))
@@ -106,6 +107,8 @@ public class MapFragment
             @Override
             public void onMapReady(GoogleMap googleMap) {
                 mMap = googleMap;
+                mMap.setInfoWindowAdapter(new LargeSnippetAdapter(getActivity()));
+
                 getActivity().invalidateOptionsMenu();
 
                 IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
