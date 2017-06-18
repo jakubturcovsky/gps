@@ -20,7 +20,7 @@ import com.avast.android.dialogs.fragment.SimpleDialogFragment;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cz.jakubturcovsky.gps.R;
-import cz.jakubturcovsky.gps.fragment.MainFragment;
+import cz.jakubturcovsky.gps.fragment.MapFragment;
 
 public class MainActivity
         extends BaseActivity
@@ -67,7 +67,7 @@ public class MainActivity
         mTitle = getTitle();
 
         if (savedInstanceState == null) {
-            replaceFragment(MainFragment.newInstance(), false);
+            replaceFragment(MapFragment.newInstance(), false);
         }
     }
 
