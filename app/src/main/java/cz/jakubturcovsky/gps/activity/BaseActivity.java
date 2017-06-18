@@ -57,8 +57,8 @@ public abstract class BaseActivity
     @Override
     public void onPositiveButtonClicked(int requestCode, Bundle data) {
         switch (requestCode) {
-            case DialogHelper.REQUEST_ACCESS_COARSE_LOCATION_PERMISSION:
-                PermissionsHelper.requestCoarseLocationPermission(this);
+            case DialogHelper.REQUEST_ACCESS_FINE_LOCATION_PERMISSION:
+                PermissionsHelper.requestFineLocationPermission(this);
                 return;
         }
 
@@ -88,7 +88,7 @@ public abstract class BaseActivity
         }
 
         switch (requestCode) {
-            case PermissionsHelper.REQUEST_CODE_ACCESS_COARSE_LOCATION:
+            case PermissionsHelper.REQUEST_CODE_ACCESS_FINE_LOCATION:
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     return;
                 }
@@ -127,7 +127,7 @@ public abstract class BaseActivity
 
     public void requestPermission(@NonNull String permission) {
         switch (permission) {
-            case Manifest.permission.ACCESS_COARSE_LOCATION:
+            case Manifest.permission.ACCESS_FINE_LOCATION:
                 DialogHelper.showCoarseLocationPermissionInfo(this);
                 break;
         }

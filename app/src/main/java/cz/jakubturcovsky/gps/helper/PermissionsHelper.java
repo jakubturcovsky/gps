@@ -11,18 +11,18 @@ import android.support.v4.content.ContextCompat;
 
 public class PermissionsHelper {
 
-    public static final int REQUEST_CODE_ACCESS_COARSE_LOCATION = 3829;
+    public static final int REQUEST_CODE_ACCESS_FINE_LOCATION = 3829;
 
-    public static boolean checkCoarseLocationPermission(@NonNull Context context) {
-        if (isAboveMarshmallow() && !isPermissionGranted(context, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+    public static boolean checkFineLocationPermission(@NonNull Context context) {
+        if (isAboveMarshmallow() && !isPermissionGranted(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
             return false;
         }
 
         return true;
     }
 
-    public static void requestCoarseLocationPermission(@NonNull Activity activity) {
-        requestPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION, REQUEST_CODE_ACCESS_COARSE_LOCATION);
+    public static void requestFineLocationPermission(@NonNull Activity activity) {
+        requestPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION, REQUEST_CODE_ACCESS_FINE_LOCATION);
     }
 
     public static void requestPermission(@NonNull Activity activity, @NonNull String permission, int requestCode) {

@@ -51,8 +51,8 @@ public class MapFragment
             public void onMapReady(GoogleMap googleMap) {
                 mMap = googleMap;
 
-                if (!PermissionsHelper.checkCoarseLocationPermission(getActivity())) {
-                    ((BaseActivity) getActivity()).requestPermission(Manifest.permission.ACCESS_COARSE_LOCATION);
+                if (!PermissionsHelper.checkFineLocationPermission(getActivity())) {
+                    ((BaseActivity) getActivity()).requestPermission(Manifest.permission.ACCESS_FINE_LOCATION);
                     return;
                 }
 
@@ -97,7 +97,7 @@ public class MapFragment
     @Override
     public void onPermissionGranted(@NonNull String permission) {
         super.onPermissionGranted(permission);
-        if (Manifest.permission.ACCESS_COARSE_LOCATION.equals(permission)) {
+        if (Manifest.permission.ACCESS_FINE_LOCATION.equals(permission)) {
             showMyLocation();
         }
     }
