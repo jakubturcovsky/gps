@@ -1,7 +1,10 @@
 package cz.jakubturcovsky.gps.activity;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -20,6 +23,8 @@ import java.util.List;
 
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.fragment.BaseFragment;
+import cz.jakubturcovsky.gps.helper.DialogHelper;
+import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 
 public abstract class BaseActivity
         extends AppCompatActivity
@@ -51,6 +56,12 @@ public abstract class BaseActivity
 
     @Override
     public void onPositiveButtonClicked(int requestCode, Bundle data) {
+        switch (requestCode) {
+            case DialogHelper.REQUEST_ACCESS_COARSE_LOCATION_PERMISSION:
+                PermissionsHelper.requestCoarseLocationPermission(this);
+                return;
+        }
+
         for (BaseFragment fragment : getVisibleFragments()) {
             fragment.onPositiveButtonClicked(requestCode, data);
         }
@@ -67,6 +78,25 @@ public abstract class BaseActivity
     public void onDismissed(int requestCode, @Nullable Bundle data) {
         for (BaseFragment fragment : getVisibleFragments()) {
             fragment.onDismissed(requestCode, data);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (permissions.length == 0 || grantResults.length == 0) {
+            return;
+        }
+
+        switch (requestCode) {
+            case PermissionsHelper.REQUEST_CODE_ACCESS_COARSE_LOCATION:
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+
+                for (BaseFragment fragment : getVisibleFragments()) {
+                    fragment.onPermissionGranted(permissions[0]);
+                }
+                break;
         }
     }
 
@@ -92,6 +122,14 @@ public abstract class BaseActivity
 
         if(!handled) {
             super.onBackPressed();
+        }
+    }
+
+    public void requestPermission(@NonNull String permission) {
+        switch (permission) {
+            case Manifest.permission.ACCESS_COARSE_LOCATION:
+                DialogHelper.showCoarseLocationPermissionInfo(this);
+                break;
         }
     }
 

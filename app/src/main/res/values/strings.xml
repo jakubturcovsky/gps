@@ -14,4 +14,8 @@
     <!-- ABOUT -->
     <string name="about_dialog_message">GPS by Jakub Turcovsky\nApplication version: %s</string>
 
+    <!-- PERMISSIONS INFO -->
+    <string name="permission_info_access_coarse_location_title">Access location</string>
+    <string name="permission_info_access_coarse_location_message">In order to show you your running paths the app needs you to enable access to device\'s location.</string>
+
 </resources>

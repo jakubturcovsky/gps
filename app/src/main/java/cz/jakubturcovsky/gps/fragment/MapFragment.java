@@ -1,23 +1,23 @@
 package cz.jakubturcovsky.gps.fragment;
 
+import android.Manifest;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
-import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.LatLng;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 import cz.jakubturcovsky.gps.R;
+import cz.jakubturcovsky.gps.activity.BaseActivity;
+import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 
 public class MapFragment
         extends BaseFragment {
@@ -50,17 +50,19 @@ public class MapFragment
             @Override
             public void onMapReady(GoogleMap googleMap) {
                 mMap = googleMap;
-//                mMap.getUiSettings().setMyLocationButtonEnabled(false);
-//                mMap.setMyLocationEnabled(true);
 
-                LatLng sydney = new LatLng(-34, 151);
-//                mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(sydney, 10);
-                mMap.animateCamera(cameraUpdate);
+                if (!PermissionsHelper.checkCoarseLocationPermission(getActivity())) {
+                    ((BaseActivity) getActivity()).requestPermission(Manifest.permission.ACCESS_COARSE_LOCATION);
+                    return;
+                }
+
+                showMyLocation();
+//                LatLng sydney = new LatLng(-34, 151);
+////                mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+//                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(sydney, 10);
+//                mMap.animateCamera(cameraUpdate);
             }
         });
-
-        MapsInitializer.initialize(getActivity());
 
         return view;
     }
@@ -90,5 +92,17 @@ public class MapFragment
         if (mMapView != null) {
             mMapView.onLowMemory();
         }
+    }
+
+    @Override
+    public void onPermissionGranted(@NonNull String permission) {
+        super.onPermissionGranted(permission);
+        if (Manifest.permission.ACCESS_COARSE_LOCATION.equals(permission)) {
+            showMyLocation();
+        }
+    }
+
+    private void showMyLocation() {
+        mMap.setMyLocationEnabled(true);
     }
 }
