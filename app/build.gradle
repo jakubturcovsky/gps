@@ -55,7 +55,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.6.3'
-        classpath 'io.fabric.tools:gradle:1.+'
     }
 }
 
@@ -84,4 +83,7 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
     // Dialogs
     compile 'com.github.jakubturcovsky:android-styled-dialogs:2.4.1'
+
+    /* Play services */
+    compile 'com.google.android.gms:play-services-maps:11.0.1'
 }
