@@ -120,7 +120,11 @@ public class MapFragment
                 getActivity().invalidateOptionsMenu();
 
                 IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
-                getActivity().registerReceiver(mLocationChangedReceiver, filter);
+                try {
+                    getActivity().registerReceiver(mLocationChangedReceiver, filter);
+                } catch (IllegalArgumentException ignored) {
+                    // There's no way to check if receiver is already registered
+                }
 
                 showMyLocation();
             }
@@ -144,7 +148,10 @@ public class MapFragment
     @Override
     public void onStop() {
         super.onStop();
-        getActivity().unregisterReceiver(mLocationChangedReceiver);
+        if (mLocationChangedReceiver != null) {
+            getActivity().unregisterReceiver(mLocationChangedReceiver);
+            mLocationChangedReceiver = null;
+        }
     }
 
     @Override
