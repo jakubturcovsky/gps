@@ -15,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 import cz.jakubturcovsky.gps.helper.PreferencesHelper;
 
@@ -28,10 +29,9 @@ public class LocationService
     public static final String EXTRA_LOCATION = "extra_location";
     public static final String ACTION_PROVIDER_DOWN = "action_provider_down";
     public static final String ACTION_MISSING_PERMISSION = "action_missing_permission";
-    // TODO: 18/06/17 DEBUG VARIABLES, change to production
-    public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 5_000L;      // 1min
+    public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 300_000L;      // 1min
 
-    private static final long MIN_DISTANCE_CHANGE = 1; // 10m
+    private static final long MIN_DISTANCE_CHANGE = 10; // 10m
 
     private LocationManager mLocationManager;
     private Location mLocation;
@@ -99,12 +99,17 @@ public class LocationService
 
     private void resetAcquireLocationTimer(long period) {
         cancelLocationListener();
+        if (BuildConfig.DEBUG) {
+            startLocationListener(5000);
+            return;
+        }
+
         if (period == -1) {
             startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
         } else if (period == 0) {
             cancelLocationListener();
         } else {
-            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
+            startLocationListener(period);
         }
     }
 
