@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_start_journey"
+        android:title="@string/map_menu_start_journey"
+        android:icon="@drawable/ic_play_arrow_24dp"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/action_end_journey"
+        android:title="@string/map_menu_end_journey"
+        android:icon="@drawable/ic_stop_24dp"
+        app:showAsAction="ifRoom"/>
+
+</menu>
