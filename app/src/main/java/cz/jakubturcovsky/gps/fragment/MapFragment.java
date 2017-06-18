@@ -25,6 +25,7 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
@@ -56,6 +57,8 @@ public class MapFragment
                 Log.d(TAG,
                         "Latitude = " + location.getLatitude() + "\nLongitude = " + location
                                 .getLongitude() + "\nAccuracy = " + location.getAccuracy());
+                LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
+
                 mLocationList.add(location);
                 NumberFormat numberFormat = NumberFormat.getInstance();
                 DateFormat dateFormat = DateFormat
@@ -67,10 +70,13 @@ public class MapFragment
                         dateFormat.format(new Date(location.getTime())),
                         getString(R.string.map_source));
                 mMap.addMarker(new MarkerOptions()
-                        .position(new LatLng(location.getLatitude(), location.getLongitude()))
+                        .position(point)
                         .title(getString(R.string.map_marker_title, mLocationList.size()))
                         .snippet(snippet)
                         .draggable(false));
+
+                mPolylineOptions.add(point);
+                mMap.addPolyline(mPolylineOptions);
             }
         }
     };
@@ -78,6 +84,7 @@ public class MapFragment
     private GoogleMap mMap;
     private LocationManager mLocationManager;
     private List<Location> mLocationList;
+    private PolylineOptions mPolylineOptions;
 
     private boolean mJourneyInProgress;
 
@@ -181,6 +188,7 @@ public class MapFragment
         switch (item.getItemId()) {
             case R.id.action_start_journey:
                 mMap.clear();
+                mPolylineOptions = new PolylineOptions();
                 mLocationList = new ArrayList<>();
                 getActivity().startService(LocationService.newIntent(getActivity()));
                 break;
