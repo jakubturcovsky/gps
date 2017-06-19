@@ -2,13 +2,16 @@ package cz.jakubturcovsky.gps.fragment;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -30,14 +33,13 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
 import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
@@ -50,6 +52,13 @@ public class MapFragment
 
     private static final String TAG = MapFragment.class.getSimpleName();
 
+    private GoogleMap mMap;
+    private LocationManager mLocationManager;
+    private PolylineOptions mPolylineOptions;
+
+    private boolean mTripInProgress;
+    private int mLocationCounter;
+
     private BroadcastReceiver mLocationChangedReceiver = new BroadcastReceiver() {
 
         @Override
@@ -61,7 +70,6 @@ public class MapFragment
                                 .getLongitude() + "\nAccuracy = " + location.getAccuracy());
                 LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
 
-                mLocationList.add(location);
                 NumberFormat numberFormat = NumberFormat.getInstance();
                 DateFormat dateFormat = DateFormat
                         .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
@@ -73,7 +81,7 @@ public class MapFragment
                         getString(R.string.map_source));
                 mMap.addMarker(new MarkerOptions()
                         .position(point)
-                        .title(getString(R.string.map_marker_title, mLocationList.size()))
+                        .title(getString(R.string.map_marker_title, mLocationCounter))
                         .snippet(snippet)
                         .draggable(false));
 
@@ -83,12 +91,25 @@ public class MapFragment
         }
     };
 
-    private GoogleMap mMap;
-    private LocationManager mLocationManager;
-    private List<Location> mLocationList;
-    private PolylineOptions mPolylineOptions;
+    private LocationService mService;
+    private boolean mBound;
+    private ServiceConnection mConnection = new ServiceConnection() {
 
-    private boolean mJourneyInProgress;
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            LocationService.LocationServiceBinder binder = (LocationService.LocationServiceBinder) service;
+            mService = binder.getService();
+            mBound = true;
+
+            retrieveTrip();
+            invalidateOptionsMenu();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+        }
+    };
 
     Unbinder mUnbinder;
     @BindView(R.id.map) MapView mMapView;
@@ -118,15 +139,6 @@ public class MapFragment
                 mMap = googleMap;
                 mMap.setInfoWindowAdapter(new LargeSnippetAdapter(getActivity()));
 
-                getActivity().invalidateOptionsMenu();
-
-                IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
-                try {
-                    getActivity().registerReceiver(mLocationChangedReceiver, filter);
-                } catch (IllegalArgumentException ignored) {
-                    // There's no way to check if receiver is already registered
-                }
-
                 showMyLocation();
             }
         });
@@ -149,9 +161,19 @@ public class MapFragment
     @Override
     public void onStop() {
         super.onStop();
-        if (mLocationChangedReceiver != null) {
-            getActivity().unregisterReceiver(mLocationChangedReceiver);
-            mLocationChangedReceiver = null;
+        if (mBound) {
+            getContext().unbindService(mConnection);
+            mBound = false;
+            mService = null;
+        }
+
+        try {
+            if (mLocationChangedReceiver != null) {
+                getActivity().unregisterReceiver(mLocationChangedReceiver);
+                mLocationChangedReceiver = null;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // There's no way to check if receiver is already unregistered, so... just in case
         }
     }
 
@@ -172,7 +194,7 @@ public class MapFragment
         getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
         MenuItem startItem = menu.findItem(R.id.action_start_journey);
         MenuItem endItem = menu.findItem(R.id.action_end_journey);
-        if (mJourneyInProgress) {
+        if (mTripInProgress) {
             startItem.setVisible(false);
             endItem.setVisible(true);
         } else {
@@ -184,14 +206,13 @@ public class MapFragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        mJourneyInProgress = item.getItemId() == R.id.action_start_journey;
+        mTripInProgress = item.getItemId() == R.id.action_start_journey;
         switch (item.getItemId()) {
             case R.id.action_start_journey:
                 mMap.clear();
                 mPolylineOptions = new PolylineOptions();
                 mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
                 mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
-                mLocationList = new ArrayList<>();
                 getActivity().startService(LocationService.newIntent(getActivity()));
                 break;
             case R.id.action_end_journey:
@@ -220,6 +241,10 @@ public class MapFragment
         }
     }
 
+    private void invalidateOptionsMenu() {
+        getActivity().invalidateOptionsMenu();
+    }
+
     private void showMyLocation() {
         if (!PermissionsHelper.checkFineLocationPermission(getActivity())) {
             ((BaseActivity) getActivity()).requestPermission(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -239,5 +264,28 @@ public class MapFragment
                     .build();
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         }
+
+        registerLocationReceiver();
+        bindLocationService();
+    }
+
+    private void registerLocationReceiver() {
+        IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
+        getActivity().registerReceiver(mLocationChangedReceiver, filter);
+    }
+
+    private void bindLocationService() {
+        getActivity().bindService(LocationService.newIntent(getActivity()), mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void retrieveTrip() {
+        if (!mBound) {
+            if (BuildConfig.DEBUG) {
+                throw new RuntimeException("This should not be called when the LocationService isn't bound!");
+            }
+            return;
+        }
+
+        
     }
 }
