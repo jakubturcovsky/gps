@@ -23,6 +23,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -232,8 +233,11 @@ public class MapFragment
         Criteria criteria = new Criteria();
         Location location = mLocationManager.getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
         if (location != null) {
-            mMap.animateCamera(CameraUpdateFactory
-                    .newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
+            CameraPosition position = CameraPosition.builder()
+                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                    .zoom(15)
+                    .build();
+            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         }
     }
 }
