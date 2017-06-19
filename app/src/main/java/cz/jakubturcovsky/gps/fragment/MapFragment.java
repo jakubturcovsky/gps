@@ -34,6 +34,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import butterknife.BindView;
@@ -59,6 +60,8 @@ public class MapFragment
     private boolean mTripInProgress;
     private int mLocationCounter;
 
+    private NumberFormat mNumberFormat;
+    private DateFormat mDateFormat;
     private BroadcastReceiver mLocationChangedReceiver = new BroadcastReceiver() {
 
         @Override
@@ -68,25 +71,8 @@ public class MapFragment
                 Log.d(TAG,
                         "Latitude = " + location.getLatitude() + "\nLongitude = " + location
                                 .getLongitude() + "\nAccuracy = " + location.getAccuracy());
-                LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
 
-                NumberFormat numberFormat = NumberFormat.getInstance();
-                DateFormat dateFormat = DateFormat
-                        .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
-                String snippet = getString(R.string.map_marker_snippet,
-                        numberFormat.format(location.getLatitude()),
-                        numberFormat.format(location.getLongitude()),
-                        numberFormat.format(location.getAccuracy()),
-                        dateFormat.format(new Date(location.getTime())),
-                        getString(R.string.map_source));
-                mMap.addMarker(new MarkerOptions()
-                        .position(point)
-                        .title(getString(R.string.map_marker_title, mLocationCounter))
-                        .snippet(snippet)
-                        .draggable(false));
-
-                mPolylineOptions.add(point);
-                mMap.addPolyline(mPolylineOptions);
+                addLocation(location);
             }
         }
     };
@@ -121,6 +107,14 @@ public class MapFragment
     @Override
     protected String getTitle() {
         return getString(R.string.navigation_drawer_home);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mNumberFormat = NumberFormat.getInstance();
+        mDateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
     }
 
     @Nullable
@@ -168,13 +162,12 @@ public class MapFragment
         }
 
         try {
-            if (mLocationChangedReceiver != null) {
-                getActivity().unregisterReceiver(mLocationChangedReceiver);
-                mLocationChangedReceiver = null;
-            }
+            getActivity().unregisterReceiver(mLocationChangedReceiver);
         } catch (IllegalArgumentException ignored) {
             // There's no way to check if receiver is already unregistered, so... just in case
         }
+
+        mLocationCounter = 0;
     }
 
     @Override
@@ -185,15 +178,20 @@ public class MapFragment
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (mMap == null) {
+        if (mMap == null || mService == null) {
             super.onCreateOptionsMenu(menu, inflater);
             return;
         }
 
         getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
-        MenuItem startItem = menu.findItem(R.id.action_start_journey);
-        MenuItem endItem = menu.findItem(R.id.action_end_journey);
+        MenuItem startItem = menu.findItem(R.id.action_start_trip);
+        MenuItem endItem = menu.findItem(R.id.action_end_trip);
         if (mTripInProgress) {
             startItem.setVisible(false);
             endItem.setVisible(true);
@@ -206,17 +204,14 @@ public class MapFragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        mTripInProgress = item.getItemId() == R.id.action_start_journey;
-        switch (item.getItemId()) {
-            case R.id.action_start_journey:
-                mMap.clear();
-                mPolylineOptions = new PolylineOptions();
-                mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
-                mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
-                getActivity().startService(LocationService.newIntent(getActivity()));
+        int itemId = item.getItemId();
+        mTripInProgress = itemId == R.id.action_start_trip;
+        switch (itemId) {
+            case R.id.action_start_trip:
+                startTrip();
                 break;
-            case R.id.action_end_journey:
-                getActivity().stopService(LocationService.newIntent(getActivity()));
+            case R.id.action_end_trip:
+                endTrip();
                 break;
         }
 
@@ -256,7 +251,8 @@ public class MapFragment
 
         // Zoom to my location
         Criteria criteria = new Criteria();
-        Location location = mLocationManager.getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
+        Location location = mLocationManager
+                .getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
         if (location != null) {
             CameraPosition position = CameraPosition.builder()
                     .target(new LatLng(location.getLatitude(), location.getLongitude()))
@@ -275,7 +271,10 @@ public class MapFragment
     }
 
     private void bindLocationService() {
-        getActivity().bindService(LocationService.newIntent(getActivity()), mConnection, Context.BIND_AUTO_CREATE);
+        Intent intent = LocationService.newIntent(getActivity());
+        // Starting before binding ensures that service won't be destroyed after unbinding
+        getActivity().startService(intent);
+        getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void retrieveTrip() {
@@ -286,6 +285,49 @@ public class MapFragment
             return;
         }
 
-        
+        addLocations(mService.getLocationList());
+    }
+
+    private void addLocations(@NonNull List<Location> locations) {
+        for (Location location : locations) {
+            addLocation(location);
+        }
+    }
+
+    private void addLocation(@Nullable Location location) {
+        if (location == null) {
+            return;
+        }
+
+        LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
+
+        String snippet = getString(R.string.map_marker_snippet,
+                mNumberFormat.format(location.getLatitude()),
+                mNumberFormat.format(location.getLongitude()),
+                mNumberFormat.format(location.getAccuracy()),
+                mDateFormat.format(new Date(location.getTime())),
+                getString(R.string.map_source));
+        mMap.addMarker(new MarkerOptions()
+                .position(point)
+                .title(getString(R.string.map_marker_title, ++mLocationCounter))
+                .snippet(snippet)
+                .draggable(false));
+
+        mPolylineOptions.add(point);
+        mMap.addPolyline(mPolylineOptions);
+    }
+
+    private void startTrip() {
+        mMap.clear();
+        mPolylineOptions = new PolylineOptions();
+        mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
+        mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
+        mLocationCounter = 0;
+
+        addLocation(mService.startTrip());
+    }
+
+    private void endTrip() {
+        mService.endTrip();
     }
 }

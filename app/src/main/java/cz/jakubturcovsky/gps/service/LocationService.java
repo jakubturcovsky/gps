@@ -16,6 +16,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cz.jakubturcovsky.gps.BuildConfig;
@@ -47,6 +48,11 @@ public class LocationService
         return new Intent(context, LocationService.class);
     }
 
+    @NonNull
+    public List<Location> getLocationList() {
+        return mLocationList;
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -57,6 +63,7 @@ public class LocationService
     public void onCreate() {
         super.onCreate();
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mLocationList = new ArrayList<>();
     }
 
     @Override
@@ -104,29 +111,32 @@ public class LocationService
         Log.d(TAG, "Status changed to " + status);
     }
 
-    public void startTrip() {
-        resetAcquireLocationTimer(PreferencesHelper.getAcquireLocationPeriod());
+    @Nullable
+    public Location startTrip() {
+        mLocationList.clear();
+        return resetAcquireLocationTimer(PreferencesHelper.getAcquireLocationPeriod());
     }
 
     public void endTrip() {
         cancelLocationListener();
     }
 
-    private void resetAcquireLocationTimer(long period) {
+    @Nullable
+    private Location resetAcquireLocationTimer(long period) {
         cancelLocationListener();
-        mLocationList.clear();
         if (BuildConfig.DEBUG && period == 42) {
-            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG);
-            return;
+            return startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG);
         }
 
         if (period == -1) {
-            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
+            return startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
         } else if (period == 0) {
             cancelLocationListener();
         } else {
-            startLocationListener(period);
+            return startLocationListener(period);
         }
+
+        return null;
     }
 
     public Location startLocationListener(final long period) {
@@ -168,6 +178,8 @@ public class LocationService
                 }
             }
         }
+
+        mLocationList.add(location);
 
         return location;
     }
