@@ -30,8 +30,10 @@ public class LocationService
     public static final String ACTION_PROVIDER_DOWN = "action_provider_down";
     public static final String ACTION_MISSING_PERMISSION = "action_missing_permission";
     public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 300_000L;      // 1min
+    public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG = 5_000L;      // 5s
 
     private static final long MIN_DISTANCE_CHANGE = 10; // 10m
+    private static final long MIN_DISTANCE_CHANGE_DEBUG = 1; // 1m
 
     private LocationManager mLocationManager;
     private Location mLocation;
@@ -99,8 +101,8 @@ public class LocationService
 
     private void resetAcquireLocationTimer(long period) {
         cancelLocationListener();
-        if (BuildConfig.DEBUG) {
-            startLocationListener(5000);
+        if (BuildConfig.DEBUG && period == 42) {
+            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG);
             return;
         }
 
@@ -130,7 +132,10 @@ public class LocationService
 
         if (networkProviderEnabled) {
             Log.d(TAG, "Network provider");
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, period, MIN_DISTANCE_CHANGE, this);
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                    period,
+                    BuildConfig.DEBUG ? MIN_DISTANCE_CHANGE_DEBUG : MIN_DISTANCE_CHANGE,
+                    this);
             if (mLocationManager != null) {
                 mLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             }
@@ -139,7 +144,10 @@ public class LocationService
         if (gpsProviderEnabled) {
             if (mLocation == null) {
                 Log.d(TAG, "GPS provider");
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, period, MIN_DISTANCE_CHANGE, this);
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                        period,
+                        BuildConfig.DEBUG ? MIN_DISTANCE_CHANGE_DEBUG : MIN_DISTANCE_CHANGE,
+                        this);
                 if (mLocationManager != null) {
                     mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 }
