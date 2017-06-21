@@ -62,6 +62,9 @@ public abstract class BaseActivity
             case DialogHelper.REQUEST_ACCESS_FINE_LOCATION_PERMISSION:
                 PermissionsHelper.requestFineLocationPermission(this);
                 return;
+            case DialogHelper.REQUEST_LOCATION_OFF:
+                showLocationOptions();
+                return;
         }
 
         for (BaseFragment fragment : getVisibleFragments()) {
@@ -188,5 +191,10 @@ public abstract class BaseActivity
         } else {
             NavUtils.navigateUpTo(this, upIntent);
         }
+    }
+
+    private void showLocationOptions() {
+        Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(intent);
     }
 }
