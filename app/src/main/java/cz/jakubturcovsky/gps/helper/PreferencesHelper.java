@@ -16,6 +16,7 @@ public class PreferencesHelper {
     public static final String PREF_ACQUIRE_LOCATION_PERIOD = "pref_acquire_location_period";
     public static final String PREF_ROUTE_LINE_COLOR = "pref_route_line_color";
     public static final String PREF_ROUTE_LINE_WIDTH = "pref_route_line_width";
+    public static final int DEFAULT_ROUTE_LINE_WIDTH = 10;
 
     public static long getAcquireLocationPeriod() {
         return Long.valueOf(getString(PREF_ACQUIRE_LOCATION_PERIOD, String.valueOf(-1)));
@@ -31,7 +32,7 @@ public class PreferencesHelper {
     }
 
     public static int getRouteLineWidth() {
-        return Integer.valueOf(getString(PREF_ROUTE_LINE_WIDTH, String.valueOf(10)));        // TODO: 18/06/17 Constant default value
+        return Integer.valueOf(getString(PREF_ROUTE_LINE_WIDTH, String.valueOf(DEFAULT_ROUTE_LINE_WIDTH)));
     }
 
     /* INTERNAL */
