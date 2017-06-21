@@ -8,12 +8,16 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
@@ -30,32 +34,40 @@ public class LocationService
     public static final String ACTION_PROVIDER_DOWN = "action_provider_down";
     public static final String ACTION_MISSING_PERMISSION = "action_missing_permission";
     public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 300_000L;      // 1min
+    public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG = 5_000L;      // 5s
 
     private static final long MIN_DISTANCE_CHANGE = 10; // 10m
+    private static final long MIN_DISTANCE_CHANGE_DEBUG = 1; // 1m
+
+    private LocationServiceBinder mBinder = new LocationServiceBinder();
 
     private LocationManager mLocationManager;
-    private Location mLocation;
+    private List<Location> mLocationList;
 
     public static Intent newIntent(@NonNull Context context) {
         return new Intent(context, LocationService.class);
     }
 
+    @NonNull
+    public List<Location> getLocationList() {
+        return mLocationList;
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mLocationList = new ArrayList<>();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        resetAcquireLocationTimer(PreferencesHelper.getAcquireLocationPeriod());
-
         return START_STICKY;
     }
 
@@ -69,6 +81,8 @@ public class LocationService
     public void onLocationChanged(Location location) {
         Log.d(TAG, "Location changed");
 
+        mLocationList.add(location);
+
         Intent intent = new Intent(ACTION_LOCATION_CHANGED);
         intent.putExtra(EXTRA_LOCATION, location);
         sendBroadcast(intent);
@@ -76,9 +90,9 @@ public class LocationService
 
     @Override
     public void onProviderDisabled(String provider) {
-        Log.d(TAG, "Provider disabled");
-        if ((LocationManager.GPS_PROVIDER.equals(provider) && isProviderEnabled(LocationManager.NETWORK_PROVIDER))
-                || (LocationManager.NETWORK_PROVIDER.equals(provider) && isProviderEnabled(LocationManager.GPS_PROVIDER))) {
+        Log.i(TAG, provider + " provider disabled");
+        if ((LocationManager.GPS_PROVIDER.equals(provider) && isNetworkProviderEnabled())
+                || (LocationManager.NETWORK_PROVIDER.equals(provider) && isGpsProviderEnabled())) {
             resetAcquireLocationTimer(PreferencesHelper.getAcquireLocationPeriod());
         } else if (!PermissionsHelper.checkFineLocationPermission(this)) {
             sendProviderDown();
@@ -89,7 +103,7 @@ public class LocationService
 
     @Override
     public void onProviderEnabled(String provider) {
-        Log.d(TAG, "Provider enabled");
+        Log.i(TAG, provider + " provider enabled");
     }
 
     @Override
@@ -97,25 +111,37 @@ public class LocationService
         Log.d(TAG, "Status changed to " + status);
     }
 
-    private void resetAcquireLocationTimer(long period) {
+    @Nullable
+    public Location startTrip() {
+        mLocationList.clear();
+        return resetAcquireLocationTimer(PreferencesHelper.getAcquireLocationPeriod());
+    }
+
+    public void endTrip() {
         cancelLocationListener();
-        if (BuildConfig.DEBUG) {
-            startLocationListener(5000);
-            return;
+    }
+
+    @Nullable
+    private Location resetAcquireLocationTimer(long period) {
+        cancelLocationListener();
+        if (BuildConfig.DEBUG && period == 42) {
+            return startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG);
         }
 
         if (period == -1) {
-            startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
+            return startLocationListener(DEFAULT_ACQUIRE_LOCATION_PERIOD);
         } else if (period == 0) {
             cancelLocationListener();
         } else {
-            startLocationListener(period);
+            return startLocationListener(period);
         }
+
+        return null;
     }
 
     public Location startLocationListener(final long period) {
-        boolean gpsProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        boolean networkProviderEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        boolean gpsProviderEnabled = isGpsProviderEnabled();
+        boolean networkProviderEnabled = isNetworkProviderEnabled();
 
         if (!gpsProviderEnabled && !networkProviderEnabled) {
             // No network provider is enabled
@@ -128,35 +154,52 @@ public class LocationService
             return null;
         }
 
+        Location location = null;
         if (networkProviderEnabled) {
             Log.d(TAG, "Network provider");
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, period, MIN_DISTANCE_CHANGE, this);
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                    period,
+                    BuildConfig.DEBUG ? MIN_DISTANCE_CHANGE_DEBUG : MIN_DISTANCE_CHANGE,
+                    this);
             if (mLocationManager != null) {
-                mLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                location = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             }
         }
         // If GPS enabled, get latitude/longitude using GPS Services
         if (gpsProviderEnabled) {
-            if (mLocation == null) {
+            if (location == null) {
                 Log.d(TAG, "GPS provider");
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, period, MIN_DISTANCE_CHANGE, this);
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                        period,
+                        BuildConfig.DEBUG ? MIN_DISTANCE_CHANGE_DEBUG : MIN_DISTANCE_CHANGE,
+                        this);
                 if (mLocationManager != null) {
-                    mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 }
             }
         }
 
-        return mLocation;
+        mLocationList.add(location);
+
+        return location;
+    }
+
+    public boolean isGpsProviderEnabled() {
+        return isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    public boolean isNetworkProviderEnabled() {
+        return isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+    }
+
+    private boolean isProviderEnabled(@NonNull String provider) {
+        return mLocationManager.isProviderEnabled(provider);
     }
 
     public void cancelLocationListener() {
         if (mLocationManager != null) {
             mLocationManager.removeUpdates(this);
         }
-    }
-
-    private boolean isProviderEnabled(@NonNull String provider) {
-        return mLocationManager.isProviderEnabled(provider);
     }
 
     private void sendProviderDown() {
@@ -201,5 +244,13 @@ public class LocationService
 
         // Showing Alert Message
         alertDialog.show();
+    }
+
+    public class LocationServiceBinder
+            extends Binder {
+
+        public LocationService getService() {
+            return LocationService.this;
+        }
     }
 }

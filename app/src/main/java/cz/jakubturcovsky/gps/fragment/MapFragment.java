@@ -2,13 +2,16 @@ package cz.jakubturcovsky.gps.fragment;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -30,7 +33,6 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -38,6 +40,7 @@ import java.util.Locale;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
 import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
@@ -50,6 +53,15 @@ public class MapFragment
 
     private static final String TAG = MapFragment.class.getSimpleName();
 
+    private GoogleMap mMap;
+    private LocationManager mLocationManager;
+    private PolylineOptions mPolylineOptions;
+
+    private boolean mTripInProgress;
+    private int mLocationCounter;
+
+    private NumberFormat mNumberFormat;
+    private DateFormat mDateFormat;
     private BroadcastReceiver mLocationChangedReceiver = new BroadcastReceiver() {
 
         @Override
@@ -59,36 +71,31 @@ public class MapFragment
                 Log.d(TAG,
                         "Latitude = " + location.getLatitude() + "\nLongitude = " + location
                                 .getLongitude() + "\nAccuracy = " + location.getAccuracy());
-                LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
 
-                mLocationList.add(location);
-                NumberFormat numberFormat = NumberFormat.getInstance();
-                DateFormat dateFormat = DateFormat
-                        .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
-                String snippet = getString(R.string.map_marker_snippet,
-                        numberFormat.format(location.getLatitude()),
-                        numberFormat.format(location.getLongitude()),
-                        numberFormat.format(location.getAccuracy()),
-                        dateFormat.format(new Date(location.getTime())),
-                        getString(R.string.map_source));
-                mMap.addMarker(new MarkerOptions()
-                        .position(point)
-                        .title(getString(R.string.map_marker_title, mLocationList.size()))
-                        .snippet(snippet)
-                        .draggable(false));
-
-                mPolylineOptions.add(point);
-                mMap.addPolyline(mPolylineOptions);
+                addLocation(location);
             }
         }
     };
 
-    private GoogleMap mMap;
-    private LocationManager mLocationManager;
-    private List<Location> mLocationList;
-    private PolylineOptions mPolylineOptions;
+    private LocationService mService;
+    private boolean mBound;
+    private ServiceConnection mConnection = new ServiceConnection() {
 
-    private boolean mJourneyInProgress;
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            LocationService.LocationServiceBinder binder = (LocationService.LocationServiceBinder) service;
+            mService = binder.getService();
+            mBound = true;
+
+            retrieveTrip();
+            invalidateOptionsMenu();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+        }
+    };
 
     Unbinder mUnbinder;
     @BindView(R.id.map) MapView mMapView;
@@ -102,15 +109,30 @@ public class MapFragment
         return getString(R.string.navigation_drawer_home);
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        mNumberFormat = NumberFormat.getInstance();
+        mNumberFormat.setMaximumFractionDigits(6);
+        mDateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
         mUnbinder = ButterKnife.bind(this, view);
 
-        mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-
         mMapView.onCreate(savedInstanceState);
+
+        return view;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mMapView.onStart();
         mMapView.getMapAsync(new OnMapReadyCallback() {
 
             @Override
@@ -118,20 +140,9 @@ public class MapFragment
                 mMap = googleMap;
                 mMap.setInfoWindowAdapter(new LargeSnippetAdapter(getActivity()));
 
-                getActivity().invalidateOptionsMenu();
-
-                IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
-                try {
-                    getActivity().registerReceiver(mLocationChangedReceiver, filter);
-                } catch (IllegalArgumentException ignored) {
-                    // There's no way to check if receiver is already registered
-                }
-
                 showMyLocation();
             }
         });
-
-        return view;
     }
 
     @Override
@@ -149,10 +160,19 @@ public class MapFragment
     @Override
     public void onStop() {
         super.onStop();
-        if (mLocationChangedReceiver != null) {
-            getActivity().unregisterReceiver(mLocationChangedReceiver);
-            mLocationChangedReceiver = null;
+        if (mBound) {
+            getContext().unbindService(mConnection);
+            mBound = false;
+            mService = null;
         }
+
+        try {
+            getActivity().unregisterReceiver(mLocationChangedReceiver);
+        } catch (IllegalArgumentException ignored) {
+            // There's no way to check if receiver is already unregistered, so... just in case
+        }
+
+        mLocationCounter = 0;
     }
 
     @Override
@@ -163,16 +183,21 @@ public class MapFragment
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (mMap == null) {
+        if (mMap == null || mService == null) {
             super.onCreateOptionsMenu(menu, inflater);
             return;
         }
 
         getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
-        MenuItem startItem = menu.findItem(R.id.action_start_journey);
-        MenuItem endItem = menu.findItem(R.id.action_end_journey);
-        if (mJourneyInProgress) {
+        MenuItem startItem = menu.findItem(R.id.action_start_trip);
+        MenuItem endItem = menu.findItem(R.id.action_end_trip);
+        if (mTripInProgress) {
             startItem.setVisible(false);
             endItem.setVisible(true);
         } else {
@@ -184,18 +209,13 @@ public class MapFragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        mJourneyInProgress = item.getItemId() == R.id.action_start_journey;
-        switch (item.getItemId()) {
-            case R.id.action_start_journey:
-                mMap.clear();
-                mPolylineOptions = new PolylineOptions();
-                mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
-                mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
-                mLocationList = new ArrayList<>();
-                getActivity().startService(LocationService.newIntent(getActivity()));
+        int itemId = item.getItemId();
+        switch (itemId) {
+            case R.id.action_start_trip:
+                startTrip();
                 break;
-            case R.id.action_end_journey:
-                getActivity().stopService(LocationService.newIntent(getActivity()));
+            case R.id.action_end_trip:
+                endTrip();
                 break;
         }
 
@@ -220,6 +240,10 @@ public class MapFragment
         }
     }
 
+    private void invalidateOptionsMenu() {
+        getActivity().invalidateOptionsMenu();
+    }
+
     private void showMyLocation() {
         if (!PermissionsHelper.checkFineLocationPermission(getActivity())) {
             ((BaseActivity) getActivity()).requestPermission(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -231,7 +255,8 @@ public class MapFragment
 
         // Zoom to my location
         Criteria criteria = new Criteria();
-        Location location = mLocationManager.getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
+        Location location = mLocationManager
+                .getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
         if (location != null) {
             CameraPosition position = CameraPosition.builder()
                     .target(new LatLng(location.getLatitude(), location.getLongitude()))
@@ -239,5 +264,88 @@ public class MapFragment
                     .build();
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         }
+
+        registerLocationReceiver();
+        bindLocationService();
+    }
+
+    private void registerLocationReceiver() {
+        IntentFilter filter = new IntentFilter(LocationService.ACTION_LOCATION_CHANGED);
+        getActivity().registerReceiver(mLocationChangedReceiver, filter);
+    }
+
+    private void bindLocationService() {
+        Intent intent = LocationService.newIntent(getActivity());
+        // Starting before binding ensures that service won't be destroyed after unbinding
+        getActivity().startService(intent);
+        getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void retrieveTrip() {
+        if (!mBound || mService == null) {
+            if (BuildConfig.DEBUG) {
+                throw new RuntimeException("This should not be called when the LocationService isn't bound!");
+            }
+            return;
+        }
+
+        addLocations(mService.getLocationList());
+    }
+
+    private void addLocations(@NonNull List<Location> locations) {
+        for (Location location : locations) {
+            addLocation(location);
+        }
+    }
+
+    private void addLocation(@Nullable Location location) {
+        if (location == null) {
+            return;
+        }
+
+        LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
+
+        String snippet = getString(R.string.map_marker_snippet,
+                mNumberFormat.format(location.getLatitude()),
+                mNumberFormat.format(location.getLongitude()),
+                mNumberFormat.format(location.getAccuracy()),
+                mDateFormat.format(new Date(location.getTime())),
+                getString(R.string.map_source));
+        mMap.addMarker(new MarkerOptions()
+                .position(point)
+                .title(getString(R.string.map_marker_title, ++mLocationCounter))
+                .snippet(snippet)
+                .draggable(false));
+
+        if (mPolylineOptions == null) {
+            mPolylineOptions = new PolylineOptions();
+        }
+        mPolylineOptions.add(point);
+        mMap.addPolyline(mPolylineOptions);
+    }
+
+    private void startTrip() {
+        if (mService == null) {
+            return;
+        }
+
+        mMap.clear();
+        mPolylineOptions = new PolylineOptions();
+        mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
+        mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
+        mLocationCounter = 0;
+
+        mTripInProgress = true;
+
+        addLocation(mService.startTrip());
+    }
+
+    private void endTrip() {
+        if (mService == null) {
+            return;
+        }
+
+        mTripInProgress = false;
+        mService.endTrip();
     }
 }
