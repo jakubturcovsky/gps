@@ -86,4 +86,7 @@ dependencies {
 
     /* Play services */
     compile 'com.google.android.gms:play-services-maps:11.0.1'
+
+    /* Bar chart */
+    compile 'com.github.lecho:hellocharts-android:v1.5.8'
 }

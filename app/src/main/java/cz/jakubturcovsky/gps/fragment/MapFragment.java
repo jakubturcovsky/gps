@@ -224,6 +224,16 @@ public class MapFragment
             case R.id.action_show_position:
                 DialogHelper.showSelectTripPosition(getActivity());
                 break;
+            case R.id.action_accuracy_chart:
+                ArrayList locations = new ArrayList<>(mService.getLocationList());
+                if (locations.size() < 1) {
+                    Toast.makeText(getActivity(), R.string.map_empty_trip, Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                Intent intent = new Intent(getActivity(), ChartActivity.class);
+                intent.putExtra(ChartActivity.EXTRA_LOCATIONS, locations);
+                getActivity().startActivity(intent);
+                break;
         }
 
         return true;
