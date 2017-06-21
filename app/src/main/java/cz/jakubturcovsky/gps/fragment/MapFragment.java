@@ -66,6 +66,7 @@ public class MapFragment
     private GoogleMap mMap;
     private LocationManager mLocationManager;
     private PolylineOptions mPolylineOptions;
+    private float mZoom = 15;
 
     private boolean mTripInProgress;
     private int mLocationCounter;
@@ -154,7 +155,6 @@ public class MapFragment
             public void onMapReady(GoogleMap googleMap) {
                 mMap = googleMap;
                 mMap.setInfoWindowAdapter(new LargeSnippetAdapter(getActivity()));
-                mMap.getUiSettings().setZoomControlsEnabled(true);
 
                 showMyLocation();
             }
@@ -176,6 +176,9 @@ public class MapFragment
     @Override
     public void onStop() {
         super.onStop();
+        if (mMap != null) {
+            mZoom = mMap.getCameraPosition().zoom;
+        }
         if (mBound) {
             getContext().unbindService(mConnection);
             mBound = false;
@@ -331,7 +334,7 @@ public class MapFragment
         if (location != null) {
             CameraPosition position = CameraPosition.builder()
                     .target(new LatLng(location.getLatitude(), location.getLongitude()))
-                    .zoom(15)
+                    .zoom(mZoom)
                     .build();
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         }
