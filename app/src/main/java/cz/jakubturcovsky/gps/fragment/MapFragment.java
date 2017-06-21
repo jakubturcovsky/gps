@@ -112,7 +112,7 @@ public class MapFragment
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         mNumberFormat = NumberFormat.getInstance();
         mDateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
     }
@@ -123,9 +123,15 @@ public class MapFragment
         View view = inflater.inflate(R.layout.fragment_map, container, false);
         mUnbinder = ButterKnife.bind(this, view);
 
-        mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-
         mMapView.onCreate(savedInstanceState);
+
+        return view;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mMapView.onStart();
         mMapView.getMapAsync(new OnMapReadyCallback() {
 
             @Override
@@ -136,8 +142,6 @@ public class MapFragment
                 showMyLocation();
             }
         });
-
-        return view;
     }
 
     @Override
@@ -205,7 +209,6 @@ public class MapFragment
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-        mTripInProgress = itemId == R.id.action_start_trip;
         switch (itemId) {
             case R.id.action_start_trip:
                 startTrip();
@@ -278,7 +281,7 @@ public class MapFragment
     }
 
     private void retrieveTrip() {
-        if (!mBound) {
+        if (!mBound || mService == null) {
             if (BuildConfig.DEBUG) {
                 throw new RuntimeException("This should not be called when the LocationService isn't bound!");
             }
@@ -313,21 +316,35 @@ public class MapFragment
                 .snippet(snippet)
                 .draggable(false));
 
+        if (mPolylineOptions == null) {
+            mPolylineOptions = new PolylineOptions();
+        }
         mPolylineOptions.add(point);
         mMap.addPolyline(mPolylineOptions);
     }
 
     private void startTrip() {
+        if (mService == null) {
+            return;
+        }
+
         mMap.clear();
         mPolylineOptions = new PolylineOptions();
         mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
         mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
         mLocationCounter = 0;
 
+        mTripInProgress = true;
+
         addLocation(mService.startTrip());
     }
 
     private void endTrip() {
+        if (mService == null) {
+            return;
+        }
+
+        mTripInProgress = false;
         mService.endTrip();
     }
 }
