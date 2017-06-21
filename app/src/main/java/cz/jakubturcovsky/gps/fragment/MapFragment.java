@@ -114,6 +114,7 @@ public class MapFragment
         super.onCreate(savedInstanceState);
         mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         mNumberFormat = NumberFormat.getInstance();
+        mNumberFormat.setMaximumFractionDigits(6);
         mDateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.getDefault());
     }
 
