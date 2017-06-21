@@ -36,6 +36,7 @@
     <string name="map_marker_title">Position %d</string>
     <string name="map_marker_snippet">Latitude: %1$s\nLongitude: %2$s\nAccuracy: %3$s\nTime: %4$s\nSource: %5$s\n</string>
     <string name="map_dialog_show_position_title">Show border position of the trip</string>
+    <string name="map_show_position_empty_trip">First start your trip</string>
     <string name="cardinal_direction_north">Northernmost</string>
     <string name="cardinal_direction_south">Southernmost</string>
     <string name="cardinal_direction_east">Easternmost</string>

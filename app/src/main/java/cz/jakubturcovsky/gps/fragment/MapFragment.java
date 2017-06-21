@@ -23,6 +23,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -51,6 +52,11 @@ import cz.jakubturcovsky.gps.helper.DialogHelper;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 import cz.jakubturcovsky.gps.helper.PreferencesHelper;
 import cz.jakubturcovsky.gps.service.LocationService;
+
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.EAST;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.NORTH;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.SOUTH;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.WEST;
 
 public class MapFragment
         extends BaseFragment {
@@ -109,6 +115,10 @@ public class MapFragment
         return new MapFragment();
     }
 
+    static {
+        System.loadLibrary("native-lib");
+    }
+
     @Override
     protected String getTitle() {
         return getString(R.string.navigation_drawer_home);
@@ -144,6 +154,7 @@ public class MapFragment
             public void onMapReady(GoogleMap googleMap) {
                 mMap = googleMap;
                 mMap.setInfoWindowAdapter(new LargeSnippetAdapter(getActivity()));
+                mMap.getUiSettings().setZoomControlsEnabled(true);
 
                 showMyLocation();
             }
@@ -194,7 +205,7 @@ public class MapFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (mMap == null || mService == null) {
+        if (mMap == null || mService == null || mPolylineOptions == null) {
             super.onCreateOptionsMenu(menu, inflater);
             return;
         }
@@ -253,7 +264,51 @@ public class MapFragment
     }
 
     private void onShowPositionDirectionSelected(@LocationService.CardinalDirection int direction) {
-        mPolylineOptions.getPoints();
+        if (mPolylineOptions == null) {
+            Toast.makeText(getActivity(), R.string.map_show_position_empty_trip, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<LatLng> points = mPolylineOptions.getPoints();
+        if (points == null || mMap == null) {
+            return;
+        }
+
+        LatLng location = findBorderLocation(points, direction);
+        if (location == null) {
+            return;
+        }
+
+        CameraPosition position = CameraPosition.builder()
+                .target(new LatLng(location.latitude, location.longitude))
+                .zoom(mMap.getMaxZoomLevel())
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(position));
+    }
+
+    public LatLng findBorderLocation(@NonNull List<LatLng> points, @LocationService.CardinalDirection int direction) {
+        if (points.size() < 1) {
+            return null;
+        }
+
+        LatLng result = null;
+        for (LatLng latLng : points) {
+            if (result == null) {
+                result = latLng;
+                continue;
+            }
+            if (direction == NORTH && Double.compare(result.latitude, latLng.latitude) < 0) {
+                result = latLng;
+            } else if (direction == SOUTH && Double.compare(result.latitude, latLng.latitude) > 0) {
+                result = latLng;
+            } else if (direction == EAST && Double.compare(result.longitude, latLng.longitude) < 0) {
+                result = latLng;
+            } else if (direction == WEST && Double.compare(result.longitude, latLng.longitude) > 0) {
+                result = latLng;
+            }
+        }
+
+        return result;
     }
 
     private void invalidateOptionsMenu() {
@@ -335,6 +390,7 @@ public class MapFragment
 
         if (mPolylineOptions == null) {
             mPolylineOptions = new PolylineOptions();
+            invalidateOptionsMenu();
         }
         mPolylineOptions.add(point);
         mMap.addPolyline(mPolylineOptions);
@@ -350,6 +406,7 @@ public class MapFragment
         mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
         mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
         mLocationCounter = 0;
+        invalidateOptionsMenu();
 
         mTripInProgress = true;
 
