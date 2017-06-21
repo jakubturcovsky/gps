@@ -12,10 +12,13 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +41,15 @@ public class LocationService
 
     private static final long MIN_DISTANCE_CHANGE = 10; // 10m
     private static final long MIN_DISTANCE_CHANGE_DEBUG = 1; // 1m
+
+    @IntDef()
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface CardinalDirection {
+        int NORTH = 0;
+        int SOUTH = 1;
+        int EAST = 2;
+        int WEST = 3;
+    }
 
     private LocationServiceBinder mBinder = new LocationServiceBinder();
 

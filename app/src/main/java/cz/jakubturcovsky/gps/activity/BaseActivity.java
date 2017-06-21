@@ -14,6 +14,7 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
+import com.avast.android.dialogs.iface.IListDialogListener;
 import com.avast.android.dialogs.iface.ISimpleDialogCancelListener;
 import com.avast.android.dialogs.iface.ISimpleDialogDismissListener;
 import com.avast.android.dialogs.iface.ISimpleDialogListener;
@@ -30,7 +31,8 @@ public abstract class BaseActivity
         extends AppCompatActivity
         implements ISimpleDialogListener,
                    ISimpleDialogCancelListener,
-                   ISimpleDialogDismissListener {
+                   ISimpleDialogDismissListener,
+                   IListDialogListener {
 
     private static final String TAG = BaseActivity.class.getSimpleName();
 
@@ -64,6 +66,13 @@ public abstract class BaseActivity
 
         for (BaseFragment fragment : getVisibleFragments()) {
             fragment.onPositiveButtonClicked(requestCode, data);
+        }
+    }
+
+    @Override
+    public void onListItemSelected(CharSequence value, int number, int requestCode, @Nullable Bundle data) {
+        for (BaseFragment fragment : getVisibleFragments()) {
+            fragment.onListItemSelected(value, number, requestCode, data);
         }
     }
 
@@ -128,7 +137,7 @@ public abstract class BaseActivity
     public void requestPermission(@NonNull String permission) {
         switch (permission) {
             case Manifest.permission.ACCESS_FINE_LOCATION:
-                DialogHelper.showCoarseLocationPermissionInfo(this);
+                DialogHelper.showFineLocationPermissionInfo(this);
                 break;
         }
     }

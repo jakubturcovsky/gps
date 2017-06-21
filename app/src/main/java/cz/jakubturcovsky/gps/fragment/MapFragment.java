@@ -18,6 +18,9 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -44,6 +47,7 @@ import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
 import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
+import cz.jakubturcovsky.gps.helper.DialogHelper;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 import cz.jakubturcovsky.gps.helper.PreferencesHelper;
 import cz.jakubturcovsky.gps.service.LocationService;
@@ -189,6 +193,29 @@ public class MapFragment
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        if (mMap == null || mService == null) {
+            super.onCreateOptionsMenu(menu, inflater);
+            return;
+        }
+
+        getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch (itemId) {
+            case R.id.action_show_position:
+                DialogHelper.showSelectTripPosition(getActivity());
+                break;
+        }
+
+        return true;
+    }
+
+    @Override
     public void onLowMemory() {
         super.onLowMemory();
         if (mMapView != null) {
@@ -213,6 +240,20 @@ public class MapFragment
             mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_play_arrow_24dp));
             endTrip();
         }
+    }
+
+    @Override
+    public void onListItemSelected(CharSequence value, int number, int requestCode, @Nullable Bundle data) {
+        super.onListItemSelected(value, number, requestCode, data);
+        switch (requestCode) {
+            case DialogHelper.REQUEST_SELECT_TRIP_POSITION:
+                onShowPositionDirectionSelected(number);
+                break;
+        }
+    }
+
+    private void onShowPositionDirectionSelected(@LocationService.CardinalDirection int direction) {
+        mPolylineOptions.getPoints();
     }
 
     private void invalidateOptionsMenu() {
