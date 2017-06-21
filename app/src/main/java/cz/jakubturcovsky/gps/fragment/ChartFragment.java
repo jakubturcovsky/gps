@@ -75,16 +75,6 @@ public class ChartFragment
     }
 
     private void generateData() {
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-        mLocations.add(mLocations.get(0));
-
         List<Column> columns = new ArrayList<>();
         ArrayList<AxisValue> axisValues = new ArrayList<>();
 
