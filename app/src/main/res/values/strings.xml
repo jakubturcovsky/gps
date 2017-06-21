@@ -32,9 +32,21 @@
     <string name="permission_info_access_coarse_location_message">In order to show you your running paths the app needs you to enable access to device\'s location.</string>
 
     <!-- MAP -->
-    <string name="map_menu_start_journey">Start journey</string>
-    <string name="map_menu_end_journey">End journey</string>
+    <string name="map_menu_show_position">Show position</string>
     <string name="map_marker_title">Position %d</string>
     <string name="map_marker_snippet">Latitude: %1$s\nLongitude: %2$s\nAccuracy: %3$s\nTime: %4$s\nSource: %5$s\n</string>
+    <string name="map_dialog_show_position_title">Show border position of the trip</string>
+    <string name="map_empty_trip">First start your trip</string>
+    <string name="cardinal_direction_north">Northernmost</string>
+    <string name="cardinal_direction_south">Southernmost</string>
+    <string name="cardinal_direction_east">Easternmost</string>
+    <string name="cardinal_direction_west">Westernmost</string>
+
+    <!-- ERROR DIALOGS -->
+    <string name="location_off_dialog_title">Location services off</string>
+    <string name="location_off_dialog_message">Please turn on location services</string>
+
+    <!-- ERRORS -->
+    <string name="error_missing_location_services">No location services</string>
 
 </resources>

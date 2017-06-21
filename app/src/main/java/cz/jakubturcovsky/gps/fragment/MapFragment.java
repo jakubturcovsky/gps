@@ -12,14 +12,19 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,6 +37,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -43,10 +49,17 @@ import butterknife.Unbinder;
 import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.R;
 import cz.jakubturcovsky.gps.activity.BaseActivity;
+import cz.jakubturcovsky.gps.activity.ChartActivity;
 import cz.jakubturcovsky.gps.adapter.LargeSnippetAdapter;
+import cz.jakubturcovsky.gps.helper.DialogHelper;
 import cz.jakubturcovsky.gps.helper.PermissionsHelper;
 import cz.jakubturcovsky.gps.helper.PreferencesHelper;
 import cz.jakubturcovsky.gps.service.LocationService;
+
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.EAST;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.NORTH;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.SOUTH;
+import static cz.jakubturcovsky.gps.service.LocationService.CardinalDirection.WEST;
 
 public class MapFragment
         extends BaseFragment {
@@ -56,6 +69,7 @@ public class MapFragment
     private GoogleMap mMap;
     private LocationManager mLocationManager;
     private PolylineOptions mPolylineOptions;
+    private CameraPosition mLastCameraPosition;
 
     private boolean mTripInProgress;
     private int mLocationCounter;
@@ -126,6 +140,7 @@ public class MapFragment
         mUnbinder = ButterKnife.bind(this, view);
 
         mMapView.onCreate(savedInstanceState);
+        initStartStopTripState();
 
         return view;
     }
@@ -161,6 +176,9 @@ public class MapFragment
     @Override
     public void onStop() {
         super.onStop();
+        if (mMap != null) {
+            mLastCameraPosition = mMap.getCameraPosition();
+        }
         if (mBound) {
             getContext().unbindService(mConnection);
             mBound = false;
@@ -189,6 +207,29 @@ public class MapFragment
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        if (mMap == null || mService == null || mPolylineOptions == null) {
+            super.onCreateOptionsMenu(menu, inflater);
+            return;
+        }
+
+        getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch (itemId) {
+            case R.id.action_show_position:
+                DialogHelper.showSelectTripPosition(getActivity());
+                break;
+        }
+
+        return true;
+    }
+
+    @Override
     public void onLowMemory() {
         super.onLowMemory();
         if (mMapView != null) {
@@ -204,15 +245,89 @@ public class MapFragment
         }
     }
 
+    @Override
+    public void onListItemSelected(CharSequence value, int number, int requestCode, @Nullable Bundle data) {
+        super.onListItemSelected(value, number, requestCode, data);
+        switch (requestCode) {
+            case DialogHelper.REQUEST_SELECT_TRIP_POSITION:
+                onShowPositionDirectionSelected(number);
+                break;
+        }
+    }
+
     @OnClick(R.id.start_stop_trip)
     protected void onStartStopTripClicked() {
         if (!mTripInProgress) {
-            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_stop_24dp));
+            try {
+                if (Settings.Secure.getInt(getActivity().getContentResolver(), Settings.Secure.LOCATION_MODE) == 0) {
+                    DialogHelper.showLocationOff(getActivity());
+                    return;
+                }
+            } catch (Settings.SettingNotFoundException ignored) {
+                Toast.makeText(getActivity(), R.string.error_missing_location_services, Toast.LENGTH_SHORT).show();
+            }
             startTrip();
         } else {
-            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_play_arrow_24dp));
             endTrip();
         }
+
+        initStartStopTripState();
+    }
+
+    private void initStartStopTripState() {
+        if (mTripInProgress) {
+            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_stop_24dp));
+        } else {
+            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_play_arrow_24dp));
+        }
+    }
+
+    private void onShowPositionDirectionSelected(@LocationService.CardinalDirection int direction) {
+        if (mPolylineOptions == null) {
+            Toast.makeText(getActivity(), R.string.map_empty_trip, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<LatLng> points = mPolylineOptions.getPoints();
+        if (points == null || mMap == null) {
+            return;
+        }
+
+        LatLng location = findBorderLocation(points, direction);
+        if (location == null) {
+            return;
+        }
+
+        CameraPosition position = CameraPosition.builder()
+                .target(new LatLng(location.latitude, location.longitude))
+                .zoom(mMap.getMaxZoomLevel())
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(position));
+    }
+
+    public LatLng findBorderLocation(@NonNull List<LatLng> points, @LocationService.CardinalDirection int direction) {
+        if (points.size() < 1) {
+            return null;
+        }
+
+        LatLng result = null;
+        for (LatLng latLng : points) {
+            if (result == null) {
+                result = latLng;
+                continue;
+            }
+            if (direction == NORTH && Double.compare(result.latitude, latLng.latitude) < 0) {
+                result = latLng;
+            } else if (direction == SOUTH && Double.compare(result.latitude, latLng.latitude) > 0) {
+                result = latLng;
+            } else if (direction == EAST && Double.compare(result.longitude, latLng.longitude) < 0) {
+                result = latLng;
+            } else if (direction == WEST && Double.compare(result.longitude, latLng.longitude) > 0) {
+                result = latLng;
+            }
+        }
+
+        return result;
     }
 
     private void invalidateOptionsMenu() {
@@ -230,14 +345,18 @@ public class MapFragment
 
         // Zoom to my location
         Criteria criteria = new Criteria();
-        Location location = mLocationManager
-                .getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
-        if (location != null) {
-            CameraPosition position = CameraPosition.builder()
-                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
-                    .zoom(15)
-                    .build();
-            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        if (mLastCameraPosition == null) {
+            Location location = mLocationManager
+                    .getLastKnownLocation(mLocationManager.getBestProvider(criteria, false));
+            if (location != null) {
+                mLastCameraPosition = CameraPosition.builder()
+                        .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                        .zoom(15)
+                        .build();
+            }
+        }
+        if (mLastCameraPosition != null) {
+            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(mLastCameraPosition));
         }
 
         registerLocationReceiver();
@@ -285,7 +404,7 @@ public class MapFragment
                 mNumberFormat.format(location.getLongitude()),
                 mNumberFormat.format(location.getAccuracy()),
                 mDateFormat.format(new Date(location.getTime())),
-                getString(R.string.map_source));
+                location.getProvider());
         mMap.addMarker(new MarkerOptions()
                 .position(point)
                 .title(getString(R.string.map_marker_title, ++mLocationCounter))
@@ -294,6 +413,7 @@ public class MapFragment
 
         if (mPolylineOptions == null) {
             mPolylineOptions = new PolylineOptions();
+            invalidateOptionsMenu();
         }
         mPolylineOptions.add(point);
         mMap.addPolyline(mPolylineOptions);
@@ -309,6 +429,7 @@ public class MapFragment
         mPolylineOptions.color(PreferencesHelper.getRouteLineColor());
         mPolylineOptions.width(PreferencesHelper.getRouteLineWidth());
         mLocationCounter = 0;
+        invalidateOptionsMenu();
 
         mTripInProgress = true;
 

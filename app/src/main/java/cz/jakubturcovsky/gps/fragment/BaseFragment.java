@@ -8,6 +8,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.view.MenuItem;
 
+import com.avast.android.dialogs.iface.IListDialogListener;
 import com.avast.android.dialogs.iface.ISimpleDialogCancelListener;
 import com.avast.android.dialogs.iface.ISimpleDialogDismissListener;
 import com.avast.android.dialogs.iface.ISimpleDialogListener;
@@ -18,7 +19,8 @@ public abstract class BaseFragment
         extends Fragment
         implements ISimpleDialogListener,
                    ISimpleDialogCancelListener,
-                   ISimpleDialogDismissListener {
+                   ISimpleDialogDismissListener,
+                   IListDialogListener {
 
     private static final String TAG = BaseFragment.class.getSimpleName();
 
@@ -63,6 +65,11 @@ public abstract class BaseFragment
 
     @Override
     public void onPositiveButtonClicked(int requestCode, @Nullable Bundle data) {
+
+    }
+
+    @Override
+    public void onListItemSelected(CharSequence value, int number, int requestCode, @Nullable Bundle data) {
 
     }
 

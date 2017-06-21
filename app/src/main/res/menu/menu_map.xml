@@ -3,15 +3,9 @@
       xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_start_trip"
-        android:title="@string/map_menu_start_journey"
-        android:icon="@drawable/ic_play_arrow_24dp"
-        app:showAsAction="ifRoom"/>
-
-    <item
-        android:id="@+id/action_end_trip"
-        android:title="@string/map_menu_end_journey"
-        android:icon="@drawable/ic_stop_24dp"
+        android:id="@+id/action_show_position"
+        android:title="@string/map_menu_show_position"
+        android:icon="@drawable/ic_explore_24dp"
         app:showAsAction="ifRoom"/>
 
 </menu>
