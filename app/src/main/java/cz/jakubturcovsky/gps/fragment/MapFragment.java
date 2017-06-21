@@ -14,11 +14,10 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -39,6 +38,7 @@ import java.util.Locale;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import butterknife.Unbinder;
 import cz.jakubturcovsky.gps.BuildConfig;
 import cz.jakubturcovsky.gps.R;
@@ -99,6 +99,7 @@ public class MapFragment
 
     Unbinder mUnbinder;
     @BindView(R.id.map) MapView mMapView;
+    @BindView(R.id.start_stop_trip) FloatingActionButton mStartStopTrip;
 
     public static MapFragment newInstance() {
         return new MapFragment();
@@ -188,43 +189,6 @@ public class MapFragment
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        if (mMap == null || mService == null) {
-            super.onCreateOptionsMenu(menu, inflater);
-            return;
-        }
-
-        getActivity().getMenuInflater().inflate(R.menu.menu_map, menu);
-        MenuItem startItem = menu.findItem(R.id.action_start_trip);
-        MenuItem endItem = menu.findItem(R.id.action_end_trip);
-        if (mTripInProgress) {
-            startItem.setVisible(false);
-            endItem.setVisible(true);
-        } else {
-            startItem.setVisible(true);
-            endItem.setVisible(false);
-        }
-        super.onCreateOptionsMenu(menu, inflater);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-        switch (itemId) {
-            case R.id.action_start_trip:
-                startTrip();
-                break;
-            case R.id.action_end_trip:
-                endTrip();
-                break;
-        }
-
-        getActivity().invalidateOptionsMenu();
-
-        return true;
-    }
-
-    @Override
     public void onLowMemory() {
         super.onLowMemory();
         if (mMapView != null) {
@@ -237,6 +201,17 @@ public class MapFragment
         super.onPermissionGranted(permission);
         if (Manifest.permission.ACCESS_FINE_LOCATION.equals(permission)) {
             showMyLocation();
+        }
+    }
+
+    @OnClick(R.id.start_stop_trip)
+    protected void onStartStopTripClicked() {
+        if (!mTripInProgress) {
+            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_stop_24dp));
+            startTrip();
+        } else {
+            mStartStopTrip.setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.ic_play_arrow_24dp));
+            endTrip();
         }
     }
 
