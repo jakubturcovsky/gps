@@ -381,7 +381,7 @@ public class MapFragment
                 mNumberFormat.format(location.getLongitude()),
                 mNumberFormat.format(location.getAccuracy()),
                 mDateFormat.format(new Date(location.getTime())),
-                getString(R.string.map_source));
+                location.getProvider());
         mMap.addMarker(new MarkerOptions()
                 .position(point)
                 .title(getString(R.string.map_marker_title, ++mLocationCounter))
