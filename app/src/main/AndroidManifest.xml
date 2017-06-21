@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="cz.jakubturcovsky.gps">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
@@ -37,6 +37,11 @@
             android:label="@string/navigation_drawer_settings"
             android:parentActivityName=".activity.MainActivity"
             android:theme="@style/AppTheme.Preferences"/>
+
+        <activity
+            android:name=".activity.ChartActivity"
+            android:launchMode="singleTop"
+            android:parentActivityName=".activity.MainActivity"/>
 
         <service android:name=".service.LocationService"/>
 

@@ -8,4 +8,9 @@
         android:icon="@drawable/ic_explore_24dp"
         app:showAsAction="ifRoom"/>
 
+    <item
+        android:id="@+id/action_accuracy_chart"
+        android:title="Accuracy chart"
+        app:showAsAction="never"/>
+
 </menu>
