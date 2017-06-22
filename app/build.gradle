@@ -5,9 +5,8 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
 
-    def longVersionName = "git -C ${rootDir} describe --tags --long".execute().text.trim()
-    def (fullVersionTag, versionBuild, gitSha) = longVersionName.tokenize('-')
-    def(String versionMajor, String versionMinor, String versionPatch) = fullVersionTag.tokenize('.')
+    def versionTag = "git -C ${rootDir} describe --tags".execute().text.trim()
+    def(String versionMajor, String versionMinor, String versionPatch) = versionTag.tokenize('.')
 
     defaultConfig {
         applicationId "cz.jakubturcovsky.gps"
