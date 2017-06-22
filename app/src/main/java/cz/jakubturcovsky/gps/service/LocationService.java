@@ -34,7 +34,7 @@ public class LocationService
     public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD = 300_000L;      // 1min
     public static final long DEFAULT_ACQUIRE_LOCATION_PERIOD_DEBUG = 5_000L;      // 5s
 
-    private static final long MIN_DISTANCE_CHANGE = 10; // 10m
+    private static final long MIN_DISTANCE_CHANGE = 20; // 20m
     private static final long MIN_DISTANCE_CHANGE_DEBUG = 1; // 1m
 
     @IntDef()
